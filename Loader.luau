@@ -83,7 +83,7 @@ function Loader.Start(StartOptions: StartOptions)
 
 	for Index = 1, #FinalOrder do
 		local ModuleScript = FinalOrder[Index]
-		local Module = require(ModuleScript :: ModuleScript)
+		local Module = require(ModuleScript)
 
 		if type(Module) == "table" and type(Module[StartOptions.MethodName]) == "function" then
 			local PrintMessage = StartOptions.PrintMessage
