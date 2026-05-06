@@ -3,6 +3,8 @@
 local RunService = game:GetService("RunService")
 
 --- Types
+export type Predicate = (ModuleScript) -> boolean
+
 export type StartOptions = {
 	Path: Instance,
 	DeepLoad: boolean?,
@@ -10,7 +12,7 @@ export type StartOptions = {
 	Priorities: { string }?,
 	Predicate: ((ModuleScript) -> boolean)?,
 
-	MethodName: string,
+	MethodName: string?,
 
 	PrintMessage: string?,
 	StartMessage: string?,
@@ -29,17 +31,44 @@ local function xwarn(...)
 	warn(LOG_IDENTIFIER, ...)
 end
 
+--- Functions
+local function FinalizeDeepLoadOption(DeepLoadOption: boolean?)
+	if typeof(DeepLoadOption) == "boolean" then
+		return DeepLoadOption 
+	end
+
+	return true
+end
+
 --- Module
 local Loader = {}
 
 --- Module Functions
+function Loader.MatchesName(Pattern: string)
+	return function(ModuleScript: ModuleScript)
+		if ModuleScript.Name:match(Pattern) then
+			return true
+		end
+
+		return false
+	end
+end
+
 function Loader.Start(StartOptions: StartOptions)
+	local Path = StartOptions.Path
+	local DeepLoad = FinalizeDeepLoadOption(StartOptions.DeepLoad)
+	local Priorities = StartOptions.Priorities
+	local Predicate = StartOptions.Predicate
+	local MethodName = StartOptions.MethodName
 	local StartMessage = StartOptions.StartMessage
+	local PrintMessage = StartOptions.PrintMessage
+	local EndMessage = StartOptions.EndMessage
+
 	if StartMessage then
 		xprint(StartMessage)
 	end
 
-	local PathContent = StartOptions.DeepLoad and StartOptions.Path:GetDescendants() or StartOptions.Path:GetChildren()
+	local PathContent = DeepLoad and Path:GetDescendants() or Path:GetChildren()
 
 	local PriorityMap = {}
 	local PrioritizedScripts = {}
@@ -56,7 +85,7 @@ function Loader.Start(StartOptions: StartOptions)
 			continue
 		end
 
-		if StartOptions.Predicate and not (StartOptions.Predicate(ModuleScript)) then
+		if Predicate and not (Predicate(ModuleScript)) then
 			continue
 		end
 
@@ -70,7 +99,7 @@ function Loader.Start(StartOptions: StartOptions)
 
 	local FinalOrder = {}
 
-	if StartOptions.Priorities then
+	if Priorities then
 		for Index = 1, #PrioritizedScripts do
 			local ModuleScript = PrioritizedScripts[Index]
 			FinalOrder[Index] = ModuleScript
@@ -85,21 +114,19 @@ function Loader.Start(StartOptions: StartOptions)
 		local ModuleScript = FinalOrder[Index]
 		local Module = require(ModuleScript)
 
-		if type(Module) == "table" and type(Module[StartOptions.MethodName]) == "function" then
-			local PrintMessage = StartOptions.PrintMessage
+		if type(Module) == "table" and type(Module[MethodName]) == "function" then
 			if PrintMessage then
 				xprint(string.format(PrintMessage, ModuleScript.Name))
 			end
 
-			if StartOptions.Priorities and StartOptions.Priorities[Index] then
-				Module[StartOptions.MethodName](Module)
+			if Priorities and Priorities[Index] then
+				Module[MethodName](Module)
 			else
-				task.spawn(Module[StartOptions.MethodName], Module)
+				task.spawn(Module[MethodName], Module)
 			end
 		end
 	end
 
-	local EndMessage = StartOptions.EndMessage
 	if EndMessage then
 		xwarn(EndMessage)
 	end
