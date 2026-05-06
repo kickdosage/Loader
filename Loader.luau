@@ -5,16 +5,16 @@ local RunService = game:GetService("RunService")
 --- Types
 export type StartOptions = {
 	Path: Instance,
-	DeepLoad: boolean,
+	DeepLoad: boolean?,
 
 	Priorities: { string }?,
 	Predicate: ((ModuleScript) -> boolean)?,
 
 	MethodName: string,
 
-	PrintMessage: string,
-	StartMessage: string,
-	EndMessage: string,
+	PrintMessage: string?,
+	StartMessage: string?,
+	EndMessage: string?,
 }
 
 --- Constants
@@ -34,7 +34,10 @@ local Loader = {}
 
 --- Module Functions
 function Loader.Start(StartOptions: StartOptions)
-	xwarn(StartOptions.StartMessage)
+	local StartMessage = StartOptions.StartMessage
+	if StartMessage then
+		xprint(StartMessage)
+	end
 
 	local PathContent = StartOptions.DeepLoad and StartOptions.Path:GetDescendants() or StartOptions.Path:GetChildren()
 
@@ -80,10 +83,13 @@ function Loader.Start(StartOptions: StartOptions)
 
 	for Index = 1, #FinalOrder do
 		local ModuleScript = FinalOrder[Index]
-		local Module = require(ModuleScript)
+		local Module = require(ModuleScript :: ModuleScript)
 
 		if type(Module) == "table" and type(Module[StartOptions.MethodName]) == "function" then
-			xprint(string.format(StartOptions.PrintMessage, ModuleScript.Name))
+			local PrintMessage = StartOptions.PrintMessage
+			if PrintMessage then
+				xprint(string.format(PrintMessage, ModuleScript.Name))
+			end
 
 			if StartOptions.Priorities and StartOptions.Priorities[Index] then
 				Module[StartOptions.MethodName](Module)
@@ -93,7 +99,10 @@ function Loader.Start(StartOptions: StartOptions)
 		end
 	end
 
-	xwarn(StartOptions.EndMessage)
+	local EndMessage = StartOptions.EndMessage
+	if EndMessage then
+		xwarn(EndMessage)
+	end
 end
 
 --- Export
