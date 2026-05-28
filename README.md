@@ -4,41 +4,41 @@ A simple loader module that supports script priorities.
 ## Types
 ```luau
 export type StartOptions = {
-	Path: Instance,
-	DeepLoad: boolean? -- defaults to true,
+	path: Instance,
+	deep_load: boolean? -- defaults to true,
 
-	Priorities: { string }?,
-	Predicate: ((ModuleScript) -> boolean)?,
+	priorities: { string }?,
+	predicate: ((ModuleScript) -> boolean)?,
 
-	MethodName: string? -- defaults to 'Initialize',
+	method_name: string? -- defaults to 'init',
 
-	PrintMessage: string?,
-	StartMessage: string?,
-	EndMessage: string?,
+	print_message: string?, -- the message to print when the method is being called. %s -> ModuleScript.Name
+	start_message: string?,
+	end_message: string?,
 }
 ```
 
 ## Code sample:
 ```luau
-local Loader = require(path.to.Loader)
+local loader = require(path.to.loader)
 
-local Path = path.to.scripts
+local path = path.to.scripts
 
-local Priorities = {
-    "PlayerDataService",
+local priorities = {
+    "player_data_service",
 }
 
-Loader.Start({
-    Path = Path,
-    DeepLoad = true,
+loader.start({
+    path = path,
+    deep_load = true,
 
-    Priorities = Priorities,
-    Predicate = Loader.MatchesName("Service$"),
+    priorities = priorities,
+    predicate = loader.matches_name("service$"),
     
-    MethodName = "Initialize",
+    method_name = "init",
 
-    StartMessage = ".:: INITIALIZING SERVER ::.",
-    PrintMessage = "> Initializing %s",
-    EndMessage = ".:: FINISHED INITIALIZING SERVER ::.",
+    start_message = ".:: INITIALIZING SERVER ::.",
+    print_message = "> Initializing %s",
+    end_message = ".:: FINISHED INITIALIZING SERVER ::.",
 })
 ```
