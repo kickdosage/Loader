@@ -1,28 +1,24 @@
 --!nonstrict
---- Services
 local RunService = game:GetService("RunService")
 
---- Types
 export type Predicate = (ModuleScript) -> boolean
 
 export type StartOptions = {
-	Path: Instance,
-	DeepLoad: boolean?,
+	path: Instance,
+	deep_load: boolean?,
 
-	Priorities: { string }?,
-	Predicate: ((ModuleScript) -> boolean)?,
+	priorities: { string }?,
+	predicate: ((ModuleScript) -> boolean)?,
 
-	MethodName: string?,
+	method_name: string?,
 
-	PrintMessage: string?,
-	StartMessage: string?,
-	EndMessage: string?,
+	start_message: string?,
+	print_message: string?,
+	end_message: string?,
 }
 
---- Constants
-local LOG_IDENTIFIER = RunService:IsServer() and "[S]" or "[C]"
+const LOG_IDENTIFIER = RunService:IsServer() and "[S]" or "[C]"
 
---- Functions
 local function xprint(...)
 	print(LOG_IDENTIFIER, ...)
 end
@@ -31,20 +27,9 @@ local function xwarn(...)
 	warn(LOG_IDENTIFIER, ...)
 end
 
---- Functions
-local function FinalizeDeepLoadOption(DeepLoadOption: boolean?)
-	if typeof(DeepLoadOption) == "boolean" then
-		return DeepLoadOption 
-	end
+local loader = {}
 
-	return true
-end
-
---- Module
-local Loader = {}
-
---- Module Functions
-function Loader.MatchesName(Pattern: string)
+function loader.matches_name(Pattern: string)
 	return function(ModuleScript: ModuleScript)
 		if ModuleScript.Name:match(Pattern) then
 			return true
@@ -54,83 +39,83 @@ function Loader.MatchesName(Pattern: string)
 	end
 end
 
-function Loader.Start(StartOptions: StartOptions)
-	local Path = StartOptions.Path
-	local DeepLoad = FinalizeDeepLoadOption(StartOptions.DeepLoad)
-	local Priorities = StartOptions.Priorities
-	local Predicate = StartOptions.Predicate
-	local MethodName = StartOptions.MethodName
-	local StartMessage = StartOptions.StartMessage
-	local PrintMessage = StartOptions.PrintMessage
-	local EndMessage = StartOptions.EndMessage
+function loader.start(start_options: StartOptions)
+	local path = start_options.path
+	local deep_load = if type(start_options.deep_load) == "boolean" then start_options.deep_load else true
+	local priorities = start_options.priorities
+	local predicate = start_options.predicate
+	local method_name = start_options.method_name or "init"
 
-	if StartMessage then
-		xprint(StartMessage)
+	local start_message = start_options.start_message
+	local print_message = start_options.print_message
+	local end_message = start_options.end_message
+
+	if start_message then
+		xwarn(start_message)
 	end
 
-	local PathContent = DeepLoad and Path:GetDescendants() or Path:GetChildren()
+	local path_content = deep_load and path:GetDescendants() or path:GetChildren()
 
-	local PriorityMap = {}
-	local PrioritizedScripts = {}
-	local RemainingScripts = {}
+	local priority_map = {}
+	local prioritized_scripts = {}
+	local remaining_scripts = {}
 
-	if StartOptions.Priorities then
-		for Index, Name in StartOptions.Priorities do
-			PriorityMap[Name] = Index
+	if start_options.priorities then
+		for index, name in start_options.priorities do
+			priority_map[name] = index
 		end
 	end
 
-	for _, ModuleScript in PathContent :: { Instance } do
-		if not ModuleScript:IsA("ModuleScript") then
+	for _, module_script in path_content :: { Instance } do
+		if not module_script:IsA("ModuleScript") then
 			continue
 		end
 
-		if Predicate and not (Predicate(ModuleScript)) then
+		if predicate and not (predicate(module_script)) then
 			continue
 		end
 
-		local PriorityIndex = PriorityMap[ModuleScript.Name]
-		if PriorityIndex then
-			PrioritizedScripts[PriorityIndex] = ModuleScript
+		local priority_index = priority_map[module_script.Name]
+		if priority_index then
+			prioritized_scripts[priority_index] = module_script
 		else
-			table.insert(RemainingScripts, ModuleScript)
+			table.insert(remaining_scripts, module_script)
 		end
 	end
 
-	local FinalOrder = {}
+	local final_order = {}
 
-	if Priorities then
-		for Index = 1, #PrioritizedScripts do
-			local ModuleScript = PrioritizedScripts[Index]
-			FinalOrder[Index] = ModuleScript
+	if priorities then
+		for index = 1, #prioritized_scripts do
+			local module_script = prioritized_scripts[index]
+			final_order[index] = module_script
 		end
 	end
 
-	for _, ModuleScript in RemainingScripts do
-		table.insert(FinalOrder, ModuleScript)
+	for _, module_script in remaining_scripts do
+		table.insert(final_order, module_script)
 	end
 
-	for Index = 1, #FinalOrder do
-		local ModuleScript = FinalOrder[Index]
-		local Module = require(ModuleScript)
+	for index = 1, #final_order do
+		local module_script = final_order[index]
+		local module = require(module_script)
 
-		if type(Module) == "table" and type(Module[MethodName]) == "function" then
-			if PrintMessage then
-				xprint(string.format(PrintMessage, ModuleScript.Name))
+		if type(module) == "table" and type(module[method_name]) == "function" then
+			if print_message then
+				xprint(string.format(print_message, module_script.Name))
 			end
-
-			if Priorities and Priorities[Index] then
-				Module[MethodName](Module)
+			
+			if priorities and priorities[index] then
+				module[method_name](module)
 			else
-				task.spawn(Module[MethodName], Module)
+				task.spawn(module[method_name], module)
 			end
 		end
 	end
 
-	if EndMessage then
-		xwarn(EndMessage)
+	if end_message then
+		xwarn(end_message)
 	end
 end
 
---- Export
-return Loader
+return loader
