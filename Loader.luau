@@ -17,7 +17,7 @@ export type StartOptions = {
 	end_message: string?,
 }
 
-const LOG_IDENTIFIER = RunService:IsServer() and "[S]" or "[C]"
+local LOG_IDENTIFIER = RunService:IsServer() and "[S]" or "[C]"
 
 local function xprint(...)
 	print(LOG_IDENTIFIER, ...)
